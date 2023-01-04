@@ -1,0 +1,95 @@
+## Auto-generated Hui-Walter model created by runjags version 2.2.0-3 on 2022-03-03
+
+model{
+
+	## Observation layer:
+
+	# Complete observations (N=1877):
+	for(p in 1:Populations){
+		Tally_RR[1:4,p] ~ dmulti(prob_RR[1:4,p], N_RR[p])
+
+		prob_RR[1:4,p] <- se_prob[1:4,p] + sp_prob[1:4,p]
+	}
+
+
+	## Observation probabilities:
+
+	for(p in 1:Populations){
+
+		# Probability of observing Mantoux- Tine- from a true positive::
+		se_prob[1,p] <- prev[p] * ((1-se[1])*(1-se[2]) +covse12)
+		# Probability of observing Mantoux- Tine- from a true negative::
+		sp_prob[1,p] <- (1-prev[p]) * (sp[1]*sp[2] +covsp12)
+
+		# Probability of observing Mantoux+ Tine- from a true positive::
+		se_prob[2,p] <- prev[p] * (se[1]*(1-se[2]) -covse12)
+		# Probability of observing Mantoux+ Tine- from a true negative::
+		sp_prob[2,p] <- (1-prev[p]) * ((1-sp[1])*sp[2] -covsp12)
+
+		# Probability of observing Mantoux- Tine+ from a true positive::
+		se_prob[3,p] <- prev[p] * ((1-se[1])*se[2] -covse12)
+		# Probability of observing Mantoux- Tine+ from a true negative::
+		sp_prob[3,p] <- (1-prev[p]) * (sp[1]*(1-sp[2]) -covsp12)
+
+		# Probability of observing Mantoux+ Tine+ from a true positive::
+		se_prob[4,p] <- prev[p] * (se[1]*se[2] +covse12)
+		# Probability of observing Mantoux+ Tine+ from a true negative::
+		sp_prob[4,p] <- (1-prev[p]) * ((1-sp[1])*(1-sp[2]) +covsp12)
+
+	}
+
+
+	## Priors:
+
+	# Prevalence in population 1:
+	prev[1] ~ dbeta(1,1)
+
+	# Prevalence in population 2:
+	prev[2] ~ dbeta(1,1)
+
+
+	# Sensitivity of Mantoux test:
+	se[1] ~ dbeta(1,1)T(1-sp[1], )
+	# Specificity of Mantoux test:
+	sp[1] ~ dbeta(1,1)
+
+	# Sensitivity of Tine test:
+	se[2] ~ dbeta(1,1)T(1-sp[2], )
+	# Specificity of Tine test:
+	sp[2] ~ dbeta(1,1)
+
+
+	# Covariance in sensitivity between Mantoux and Tine tests:
+	# covse12 ~ dunif( (se[1]-1)*(1-se[2]) , min(se[1],se[2]) - se[1]*se[2] )  ## if the sensitivity of these tests may be correlated
+	 covse12 <- 0  ## if the sensitivity of these tests can be assumed to be independent
+	# Covariance in specificity between Mantoux and Tine tests:
+	# covsp12 ~ dunif( (sp[1]-1)*(1-sp[2]) , min(sp[1],sp[2]) - sp[1]*sp[2] )  ## if the specificity of these tests may be correlated
+	 covsp12 <- 0  ## if the specificity of these tests can be assumed to be independent
+
+}
+
+#monitor# se, sp, prev, covse12, covsp12
+
+## Inits:
+inits{
+"se" <- c(0.5, 0.99)
+"sp" <- c(0.99, 0.75)
+"prev" <- c(0.05, 0.95)
+# "covse12" <- 0
+# "covsp12" <- 0
+}
+inits{
+"se" <- c(0.99, 0.5)
+"sp" <- c(0.75, 0.99)
+"prev" <- c(0.95, 0.05)
+# "covse12" <- 0
+# "covsp12" <- 0
+}
+
+## Data:
+data{
+"Populations" <- 2
+"N_RR" <- c(555, 1322)
+"Tally_RR" <- structure(c(528, 4, 9, 14, 367, 31, 37, 887), .Dim = c(4, 2))
+}
+
