@@ -1,0 +1,678 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+ 
+
+```{r}
+# Install and load necessary packages
+install.packages("poLCA")
+install.packages("GGally")
+install.packages("ggplot2")
+```
+
+```{r}
+library(poLCA)
+library(GGally)
+library(ggplot2)
+```
+
+```{r}
+# Load the Wisconsin Breast Cancer dataset (UCI Machine Learning Repository)
+data_url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data"
+wdbc <- read.csv(data_url, header = FALSE)
+
+# Assign column names to the dataset (Based on UCI names)
+colnames(wdbc) <- c("ID", "Diagnosis", "Radius_Mean", "Texture_Mean", "Perimeter_Mean", 
+                    "Area_Mean", "Smoothness_Mean", "Compactness_Mean", "Concavity_Mean",
+                    "Concave_Points_Mean", "Symmetry_Mean", "Fractal_Dimension_Mean", 
+                    "Radius_SE", "Texture_SE", "Perimeter_SE", "Area_SE", 
+                    "Smoothness_SE", "Compactness_SE", "Concavity_SE", 
+                    "Concave_Points_SE", "Symmetry_SE", "Fractal_Dimension_SE")
+
+# Select features for Latent Class Analysis
+selected_data <- wdbc[, c("Radius_Mean", "Texture_Mean", "Smoothness_Mean", "Compactness_Mean", "Texture_SE")]
+
+# Binning continuous variables into categories (for LCA)
+selected_data$Radius_Mean_Cat <- cut(selected_data$Radius_Mean, breaks = 4, labels = FALSE)
+selected_data$Texture_Mean_Cat <- cut(selected_data$Texture_Mean, breaks = 4, labels = FALSE)
+selected_data$Smoothness_Mean_Cat <- cut(selected_data$Smoothness_Mean, breaks = 4, labels = FALSE)
+selected_data$Compactness_Mean_Cat <- cut(selected_data$Compactness_Mean, breaks = 4, labels = FALSE)
+selected_data$Texture_SE_Cat <- cut(selected_data$Texture_SE, breaks = 4,
+labels = FALSE)
+
+# Perform Latent Class Analysis (LCA)
+lca_data <- data.frame(
+  Radius_Mean_Cat = selected_data$Radius_Mean_Cat,
+  Texture_Mean_Cat = selected_data$Texture_Mean_Cat,
+  Smoothness_Mean_Cat = selected_data$Smoothness_Mean_Cat,
+  Compactness_Mean_Cat = selected_data$Compactness_Mean_Cat,
+  Texture_SE_Cat = selected_data$Texture_SE_Cat,
+  Diagnosis = wdbc$Diagnosis
+)
+
+# Create formula for LCA
+f <- cbind(Radius_Mean_Cat, Texture_Mean_Cat, Smoothness_Mean_Cat, Compactness_Mean_Cat, Texture_SE_Cat) ~ Diagnosis
+
+# Perform LCA with 2 latent classes
+lca_model <- poLCA(f, data = lca_data, nclass = 2)
+
+# Extract latent classes from the model
+latent_class <- lca_model$predclass
+
+# Add Latent Class to selected_data
+selected_data$Latent_Class <- factor(latent_class)
+
+# Check if Latent_Class was added correctly
+print(head(selected_data))
+
+# Generate pairwise bivariate plots including Texture_SE
+plot <- ggpairs(
+  selected_data[, c("Radius_Mean", "Texture_Mean", "Smoothness_Mean", "Compactness_Mean", "Texture_SE", "Latent_Class")], 
+  aes(color = Latent_Class, alpha = 0.5), 
+  lower = list(continuous = "points"),  # Scatter plots in lower triangle
+  diag = list(continuous = "densityDiag"),  # Density plots on the diagonal
+  upper = list(continuous = "density", combo = "box_no_facet"), # Correlation in upper triangle
+  columns = c("Radius_Mean", "Texture_Mean", "Smoothness_Mean", "Compactness_Mean", "Texture_SE"),
+  columnLabels = c("Radius Mean", "Texture Mean", "Smoothness Mean", "Compactness Mean", "Texture SE"),
+  axisLabels = "none"
+)
+
+# Customize the plot with larger, bold text and remove underscores from labels
+plot <- plot + 
+  theme_bw() + 
+  theme(
+    # Make strip (facet) text larger and bold
+    strip.text = element_text(size = 12, face = "bold"),
+    # Rotate the left-side labels by 90 degrees
+    strip.text.y = element_text(angle = 0, size=12)  # Adjust angle as needed
+  )
+
+# Display the plot
+print(plot)
+```
+
+
+
+
+# Plot matrix of variables
+
+```{r}
+# Your existing plot code
+plot <- ggpairs(
+  selected_data[, c("Radius_Mean", "Texture_Mean", "Smoothness_Mean", "Compactness_Mean", "Texture_SE", "Latent_Class")], 
+  aes(color = Latent_Class, alpha = 0.5), 
+  lower = list(continuous = "points"),  # Scatter plots in lower triangle
+  diag = list(continuous = "densityDiag"),  # Density plots on the diagonal
+  upper = list(continuous = "density", combo = "box_no_facet"), # Density plots in upper triangle
+  columns = c("Radius_Mean", "Texture_Mean", "Smoothness_Mean", "Compactness_Mean", "Texture_SE"),
+  columnLabels = c("Radius Mean", "Texture Mean", "Smoothness Mean", "Compactness Mean", "Texture SE"),
+  axisLabels = "none"
+)
+
+# Customize the plot with larger fonts and adjust layout
+plot <- plot + 
+  theme_bw(base_size = 16) +  # Increase base font size
+  theme(
+    # Make strip (facet) text larger and bold
+    strip.text = element_text(size = 25, face = "bold"),
+    # Rotate and align the left-side labels
+    strip.placement = "outside",
+    strip.background = element_blank(),
+    strip.text.y.left = element_text(angle = 0, hjust = 1),
+    # Increase axis text size
+    axis.text = element_text(size = 14),
+    # Adjust legend text
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    # Adjust panel spacing to prevent overlap
+    panel.spacing = unit(1.5, "lines")
+  ) +
+  # Adjust plot margins
+  theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+# Save the plot at 300 dpi with specified dimensions
+ggsave(
+  filename = "ggpairs_plot.png",
+  plot = plot,
+  width = 14,    # Adjust width as needed
+  height = 14,   # Adjust height as needed
+  dpi = 300
+)
+```
+
+
+
+
+
+# Delete everything below
+
+
+```{r}
+# Load necessary libraries
+library(tidyverse)
+library(tidyLPA)
+
+# Load the Wisconsin Breast Cancer Dataset
+data_url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data"
+wdbc <- read.csv(data_url, header = FALSE)
+
+# Assign column names to the dataset
+colnames(wdbc) <- c("ID", "Diagnosis", "Radius_Mean", "Texture_Mean", "Perimeter_Mean", 
+                    "Area_Mean", "Smoothness_Mean", "Compactness_Mean", "Concavity_Mean",
+                    "Concave_Points_Mean", "Symmetry_Mean", "Fractal_Dimension_Mean", 
+                    "Radius_SE", "Texture_SE", "Perimeter_SE", "Area_SE", 
+                    "Smoothness_SE", "Compactness_SE", "Concavity_SE", 
+                    "Concave_Points_SE", "Symmetry_SE", "Fractal_Dimension_SE")
+
+# Select only the required features
+features <- c("Radius_Mean", "Texture_Mean", "Smoothness_Mean", "Compactness_Mean", "Texture_SE")
+bc_subset <- wdbc %>% select(all_of(features)) %>% scale()
+
+# Convert the matrix back to a data frame after scaling
+bc_subset <- as.data.frame(bc_subset)
+
+# Add Diagnosis information back into the data frame
+bc_subset$Diagnosis <- wdbc$Diagnosis
+
+# Perform Latent Profile Analysis (LPA) with 1 to 2 profiles (classes)
+lpa_result <- bc_subset %>%
+  estimate_profiles(n_profiles = 1:2, 
+                    #variances = "varying", 
+                    #covariances = "varying"
+                    )
+
+
+# Plot the profiles using the result from the LPA
+plot <- lpa_result %>%
+  plot_profiles() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+# Print the plot
+print(plot)
+```
+## thi is the good one
+
+```{r}
+
+library(XML)
+library(RCurl)
+library(tidyLPA)
+
+UCI_data_URL <- getURL('https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data')
+names <- c('id_number', 'diagnosis', 'radius_mean', 
+         'texture_mean', 'perimeter_mean', 'area_mean', 
+         'smoothness_mean', 'compactness_mean', 
+         'concavity_mean','concave_points_mean', 
+         'symmetry_mean', 'fractal_dimension_mean',
+         'radius_se', 'texture_se', 'perimeter_se', 
+         'area_se', 'smoothness_se', 'compactness_se', 
+         'concavity_se', 'concave_points_se', 
+         'symmetry_se', 'fractal_dimension_se', 
+         'radius_worst', 'texture_worst', 
+         'perimeter_worst', 'area_worst', 
+         'smoothness_worst', 'compactness_worst', 
+         'concavity_worst', 'concave_points_worst', 
+         'symmetry_worst', 'fractal_dimension_worst')
+breast_cancer <- read.table(textConnection(UCI_data_URL), sep = ',', col.names = names)
+
+breast_cancer$id_number <- NULL
+
+features <- names[!names %in% c("id_number", "diagnosis")]
+bc_subset <- c('radius_mean', 'texture_mean', 'smoothness_mean','compactness_mean', 'texture_se') # sklearn dendrogram
+     
+
+breast_cancer  %>%
+  select(all_of(features)) %>%
+  subset(select = bc_subset) %>%
+  scale() %>%
+  estimate_profiles(n_profiles=1:2,
+                   variances = "varying",
+                   covariances = "varying") %>%
+  plot_profiles() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+
+```
+
+```{r}
+library(XML)
+library(RCurl)
+library(tidyLPA)
+library(dplyr)
+library(ggplot2)
+library(forcats)  # For recode_factor function
+
+# Load and prepare the data
+UCI_data_URL <- getURL('https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data')
+names <- c('id_number', 'diagnosis', 'radius_mean', 
+           'texture_mean', 'perimeter_mean', 'area_mean', 
+           'smoothness_mean', 'compactness_mean', 
+           'concavity_mean','concave_points_mean', 
+           'symmetry_mean', 'fractal_dimension_mean',
+           'radius_se', 'texture_se', 'perimeter_se', 
+           'area_se', 'smoothness_se', 'compactness_se', 
+           'concavity_se', 'concave_points_se', 
+           'symmetry_se', 'fractal_dimension_se', 
+           'radius_worst', 'texture_worst', 
+           'perimeter_worst', 'area_worst', 
+           'smoothness_worst', 'compactness_worst', 
+           'concavity_worst', 'concave_points_worst', 
+           'symmetry_worst', 'fractal_dimension_worst')
+breast_cancer <- read.table(textConnection(UCI_data_URL), sep = ',', col.names = names)
+
+# Remove unnecessary columns
+breast_cancer$id_number <- NULL
+
+# Define the features and subset
+features <- names[!names %in% c("id_number", "diagnosis")]
+bc_subset <- c('radius_mean', 'texture_mean', 'smoothness_mean', 'compactness_mean', 'texture_se')
+
+# Scale the data
+scaled_data <- breast_cancer %>%
+  select(all_of(features)) %>%
+  select(all_of(bc_subset)) %>%
+  scale() %>%
+  as.data.frame()
+
+# Estimate profiles and plot
+profile_model <- scaled_data %>%
+  estimate_profiles(n_profiles = 1:2,
+                    variances = "varying",
+                    covariances = "varying")
+
+# Extract data from the plot object to modify it
+plot_data <- profile_model$data
+
+# Modify the x-axis labels
+plot_data <- plot_data %>%
+  mutate(Variable = recode_factor(Variable,
+                                  radius_mean = "Radius Mean",
+                                  texture_mean = "Texture Mean",
+                                  smoothness_mean = "Smoothness Mean",
+                                  compactness_mean = "Compactness Mean",
+                                  texture_se = "Texture SE"))
+
+# Recreate the plot with the updated data
+ggplot(plot_data, aes(x = Variable, y = Value, fill = as.factor(Profile))) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+
+
+```{r}
+library(XML)
+library(RCurl)
+library(tidyLPA)
+library(dplyr)
+library(ggplot2)
+library(forcats)
+
+# Load and prepare the data
+UCI_data_URL <- getURL('https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data')
+names <- c('id_number', 'diagnosis', 'radius_mean', 
+           'texture_mean', 'perimeter_mean', 'area_mean', 
+           'smoothness_mean', 'compactness_mean', 
+           'concavity_mean','concave_points_mean', 
+           'symmetry_mean', 'fractal_dimension_mean',
+           'radius_se', 'texture_se', 'perimeter_se', 
+           'area_se', 'smoothness_se', 'compactness_se', 
+           'concavity_se', 'concave_points_se', 
+           'symmetry_se', 'fractal_dimension_se', 
+           'radius_worst', 'texture_worst', 
+           'perimeter_worst', 'area_worst', 
+           'smoothness_worst', 'compactness_worst', 
+           'concavity_worst', 'concave_points_worst', 
+           'symmetry_worst', 'fractal_dimension_worst')
+breast_cancer <- read.table(textConnection(UCI_data_URL), sep = ',', col.names = names)
+
+# Remove unnecessary columns
+breast_cancer$id_number <- NULL
+
+# Define the features and subset
+features <- names[!names %in% c("id_number", "diagnosis")]
+bc_subset <- c('radius_mean', 'texture_mean', 'smoothness_mean', 'compactness_mean', 'texture_se')
+
+# Scale the data
+scaled_data <- breast_cancer %>%
+  select(all_of(features)) %>%
+  select(all_of(bc_subset)) %>%
+  scale() %>%
+  as.data.frame()
+
+# Estimate profiles
+profile_model <- scaled_data %>%
+  estimate_profiles(n_profiles = 1:2,
+                    variances = "varying",
+                    covariances = "varying")
+
+# Check if the data was generated
+if (is.null(profile_model$data)) {
+  # If the data is NULL, print a message
+  print("No data generated by estimate_profiles()")
+} else {
+  # Extract data and modify Variable names
+  plot_data <- profile_model$data
+  
+  plot_data <- plot_data %>%
+    mutate(Variable = recode_factor(Variable,
+                                    radius_mean = "Radius Mean",
+                                    texture_mean = "Texture Mean",
+                                    smoothness_mean = "Smoothness Mean",
+                                    compactness_mean = "Compactness Mean",
+                                    texture_se = "Texture SE"))
+  
+  # Plot the updated data
+  ggplot(plot_data, aes(x = Variable, y = Value, fill = as.factor(Profile))) +
+    geom_bar(stat = "identity", position = position_dodge()) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+}
+
+```
+
+```{r}
+library(XML)
+library(RCurl)
+library(tidyLPA)
+library(dplyr)
+library(ggplot2)
+
+# Load and prepare the data
+UCI_data_URL <- getURL('https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data')
+names <- c('id_number', 'diagnosis', 'radius_mean', 
+           'texture_mean', 'perimeter_mean', 'area_mean', 
+           'smoothness_mean', 'compactness_mean', 
+           'concavity_mean','concave_points_mean', 
+           'symmetry_mean', 'fractal_dimension_mean',
+           'radius_se', 'texture_se', 'perimeter_se', 
+           'area_se', 'smoothness_se', 'compactness_se', 
+           'concavity_se', 'concave_points_se', 
+           'symmetry_se', 'fractal_dimension_se', 
+           'radius_worst', 'texture_worst', 
+           'perimeter_worst', 'area_worst', 
+           'smoothness_worst', 'compactness_worst', 
+           'concavity_worst', 'concave_points_worst', 
+           'symmetry_worst', 'fractal_dimension_worst')
+breast_cancer <- read.table(textConnection(UCI_data_URL), sep = ',', col.names = names)
+
+# Remove unnecessary columns
+breast_cancer$id_number <- NULL
+
+# Define the features and subset
+features <- names[!names %in% c("id_number", "diagnosis")]
+bc_subset <- c('radius_mean', 'texture_mean', 'smoothness_mean', 'compactness_mean', 'texture_se')
+
+# Scale the data
+scaled_data <- breast_cancer %>%
+  select(all_of(features)) %>%
+  select(all_of(bc_subset)) %>%
+  scale() %>%
+  as.data.frame()
+
+# Estimate profiles and plot
+plot_obj <- scaled_data %>%
+  estimate_profiles(n_profiles = 1:2,
+                    variances = "varying",
+                    covariances = "varying") %>%
+  plot_profiles() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+# Modify the x-axis labels
+library(forcats)  # For recode_factor function
+plot_obj$data <- plot_obj$data %>%
+  mutate(Variable = recode_factor(Variable,
+                                  radius_mean = "Radius Mean",
+                                  texture_mean = "Texture Mean",
+                                  smoothness_mean = "Smoothness Mean",
+                                  compactness_mean = "Compactness Mean",
+                                  texture_se = "Texture SE"))
+
+# Display the updated plot
+print(plot_obj)
+
+```
+
+
+
+
+```{r}
+library(XML)
+library(RCurl)
+library(tidyLPA)
+library(dplyr)
+library(ggplot2)
+
+# Load and prepare the data
+UCI_data_URL <- getURL('https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data')
+names <- c('id_number', 'diagnosis', 'radius_mean', 
+           'texture_mean', 'perimeter_mean', 'area_mean', 
+           'smoothness_mean', 'compactness_mean', 
+           'concavity_mean','concave_points_mean', 
+           'symmetry_mean', 'fractal_dimension_mean',
+           'radius_se', 'texture_se', 'perimeter_se', 
+           'area_se', 'smoothness_se', 'compactness_se', 
+           'concavity_se', 'concave_points_se', 
+           'symmetry_se', 'fractal_dimension_se', 
+           'radius_worst', 'texture_worst', 
+           'perimeter_worst', 'area_worst', 
+           'smoothness_worst', 'compactness_worst', 
+           'concavity_worst', 'concave_points_worst', 
+           'symmetry_worst', 'fractal_dimension_worst')
+breast_cancer <- read.table(textConnection(UCI_data_URL), sep = ',', col.names = names)
+
+# Remove unnecessary columns
+breast_cancer$id_number <- NULL
+
+# Define the features and subset
+features <- names[!names %in% c("id_number", "diagnosis")]
+bc_subset <- c('radius_mean', 'texture_mean', 'smoothness_mean', 'compactness_mean', 'texture_se')
+
+# Scale the data
+scaled_data <- breast_cancer %>%
+  select(all_of(features)) %>%
+  select(all_of(bc_subset)) %>%
+  scale() %>%
+  as.data.frame()
+
+# Estimate profiles
+profiles <- scaled_data %>%
+  estimate_profiles(n_profiles = 1:2,
+                    variances = "varying",
+                    covariances = "varying")
+
+# Define custom variable labels
+variable_labels <- c(
+  radius_mean = "Radius Mean",
+  texture_mean = "Texture Mean",
+  smoothness_mean = "Smoothness Mean",
+  compactness_mean = "Compactness Mean",
+  texture_se = "Texture SE"
+)
+
+# Plot profiles with custom x-axis labels
+plot_profiles(profiles, variable_labels = variable_labels) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+
+
+```{r}
+# Continue from the previous steps until plot_obj creation
+
+# Define a named vector for labels
+label_names <- c(
+  "radius_mean" = "Radius Mean",
+  "texture_mean" = "Texture Mean",
+  "smoothness_mean" = "Smoothness Mean",
+  "compactness_mean" = "Compactness Mean",
+  "texture_se" = "Texture SE"
+)
+
+# Update the plot with new x-axis labels
+plot_obj <- plot_obj +
+  scale_x_discrete(labels = label_names)
+
+# Display the updated plot
+print(plot_obj)
+```
+
+
+
+# OLd
+
+```{r}
+# Load required libraries
+library(XML)
+library(RCurl)
+library(tidyLPA)
+library(ggplot2)  # Make sure ggplot2 is loaded
+
+# Your existing data processing steps
+UCI_data_URL <- getURL('https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data')
+names <- c('id_number', 'diagnosis',
+           'Radius Mean', 
+           'Texture Mean', 
+           'perimeter_mean', 'area_mean', 
+           'Smoothness Mean',
+           'Compactness Mean', 
+           'concavity_mean','concave_points_mean', 
+           'symmetry_mean', 'fractal_dimension_mean','radius_se',
+           'Texture SE',
+           'perimeter_se', 
+           'area_se', 'smoothness_se', 'compactness_se', 
+           'concavity_se', 'concave_points_se', 
+           'symmetry_se', 'fractal_dimension_se', 
+           'radius_worst', 'texture_worst', 
+           'perimeter_worst', 'area_worst', 
+           'smoothness_worst', 'compactness_worst', 
+           'concavity_worst', 'concave_points_worst', 
+           'symmetry_worst', 'fractal_dimension_worst')
+breast_cancer <- read.table(textConnection(UCI_data_URL), sep = ',', col.names = names)
+
+
+breast_cancer$id_number <- NULL
+
+features <- names[!names %in% c("id_number", "diagnosis")]
+bc_subset <- c('Radius Mean', 'Texture Mean', 'Smoothness Mean','Compactness Mean', 'Texture SE') # sklearn dendrogram
+names(breast_cancer)[names(breast_cancer) == 'Radius.Mean'] <- 'Radius Mean'
+names(breast_cancer)[names(breast_cancer) == 'Texture.Mean'] <- 'Texture Mean'
+names(breast_cancer)[names(breast_cancer) == 'Smoothness.Mean'] <- 'Smoothness Mean'
+names(breast_cancer)[names(breast_cancer) == 'Compactness.Mean'] <- 'Compactness Mean'
+names(breast_cancer)[names(breast_cancer) == 'Texture.SE'] <- 'Texture SE'
+
+# Modified plotting code
+breast_cancer  %>%
+  select(all_of(features)) %>%
+  subset(select = bc_subset) %>%
+  scale() %>%
+  estimate_profiles(n_profiles = 1:2,
+                    variances = "varying",
+                    covariances = "varying") %>%
+  plot_profiles() +
+  #theme_classic() +  # Add theme_bw
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+    axis.text = element_text(size = 14, face = "bold"),     # Larger, bold axis text
+    axis.title = element_text(size = 16, face = "bold"),    # Larger, bold axis titles
+    legend.text = element_text(size = 14, face = "bold"),   # Larger, bold legend text
+    legend.title = element_text(size = 16, face = "bold")   # Larger, bold legend title
+  ) +
+  facet_wrap(~ Class, labeller = labeller(Class = c(`1` = "Malignant", `2` = "Benign")))  # Change class labels
+
+```
+
+
+```{r}
+library(XML)
+library(RCurl)
+library(tidyLPA)
+library(ggplot2)
+library(dplyr)
+
+# Load and prepare the data
+UCI_data_URL <- getURL('https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data')
+
+names <- c('id_number', 'diagnosis', 'radius_mean', 
+           'texture_mean', 'perimeter_mean', 'area_mean', 
+           'smoothness_mean', 'compactness_mean', 
+           'concavity_mean','concave_points_mean', 
+           'symmetry_mean', 'fractal_dimension_mean',
+           'radius_se', 'texture_se', 'perimeter_se', 
+           'area_se', 'smoothness_se', 'compactness_se', 
+           'concavity_se', 'concave_points_se', 
+           'symmetry_se', 'fractal_dimension_se', 
+           'radius_worst', 'texture_worst', 
+           'perimeter_worst', 'area_worst', 
+           'smoothness_worst', 'compactness_worst', 
+           'concavity_worst', 'concave_points_worst', 
+           'symmetry_worst', 'fractal_dimension_worst')
+
+breast_cancer <- read.table(textConnection(UCI_data_URL), sep = ',', col.names = names)
+breast_cancer$id_number <- NULL
+
+# Select variables and scale data
+bc_subset <- c('radius_mean', 'texture_mean', 'smoothness_mean', 'compactness_mean', 'texture_se')
+breast_cancer_scaled <- breast_cancer %>%
+  select(all_of(bc_subset)) %>%
+  scale() %>%
+  as.data.frame()
+
+# Perform Latent Profile Analysis (LPA)
+profiles <- estimate_profiles(breast_cancer_scaled,
+                              n_profiles = 2,
+                              variances = "varying",
+                              covariances = "varying")
+
+# Extract estimates for plotting
+estimates <- get_estimates(profiles)
+
+# Prepare data for plotting
+means <- estimates %>%
+  filter(Category == "Means") %>%
+  select(Class, Parameter, Estimate, se)
+
+# Add confidence intervals
+means <- means %>%
+  mutate(
+    ci_lower = Estimate - 1.96 * se,
+    ci_upper = Estimate + 1.96 * se
+  )
+
+# Rename variables and classes
+variable_labels <- c(
+  "radius_mean" = "Radius Mean",
+  "texture_mean" = "Texture Mean",
+  "smoothness_mean" = "Smoothness Mean",
+  "compactness_mean" = "Compactness Mean",
+  "texture_se" = "Texture SE"
+)
+
+means$Parameter <- variable_labels[means$Parameter]
+means$Parameter <- factor(means$Parameter, levels = variable_labels)
+
+class_labels <- c("1" = "Malignant", "2" = "Benign")
+means$Class <- class_labels[as.character(means$Class)]
+means$Class <- factor(means$Class, levels = c("Malignant", "Benign"))
+
+# Plot using ggplot2
+ggplot(means, aes(x = Parameter, y = Estimate, group = Class, color = Class)) +
+  geom_point(size = 4) +
+  geom_line(size = 1.2) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, size = 1) +
+  scale_color_manual(values = c("Malignant" = "red", "Benign" = "blue")) +
+  theme_bw() +  # Add theme_bw
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14, face = "bold"),
+    axis.text.y = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 16, face = "bold"),
+    legend.text = element_text(size = 14, face = "bold"),
+    legend.title = element_text(size = 16, face = "bold")
+  ) +
+  labs(
+    x = NULL,
+    y = "Standardized Mean",
+    color = "Diagnosis"
+  )
+
+```
