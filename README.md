@@ -29,6 +29,7 @@ $ pip install -r requirements.txt
 ## Guide to Notebooks and Scripts
 
 ### Core Work
+
 1. [Latent Profile Analysis](latent_class_analysis.ipynb) introduces the Wisconsin Breast Cancer Dataset (WBCD) and runs Latent Profile Analysis to partition it into latent subpopulations.
 
 2. [Hui-Walter Gibbs Sampler](Hui-Walter Gibbs Sampler.ipynb) uses the WBCD dataset with subpopulation information from the previous step.  It is partitioned into a training and test dataset.  Random Forest and SVM models are trained on the training dataset and generates predictions for the test dataset.  These test predictions are written to a file.
@@ -37,6 +38,10 @@ $ pip install -r requirements.txt
 
 4. [online](online.ipynb) performs online Hui-Walter and resulting analysis.
 
+5. [Reproduction](MLE.ipynb) of the original hui-walter paper.
+
 ### Supplemental
 
 * [t-sne](t-sne.ipynb) contains the t-sne dimension reduction visualization of the latent populations estimated in [Latent Profile Analysis](latent_class_analysis.ipynb)
+* [Distribution Plots](Fig. 5.) The R notebook for Figure 5. 
+* [Bivariate Features Plots]() The jupyter notebook for Fig. 3.
