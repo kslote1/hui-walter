@@ -1,5 +1,6 @@
 # Online Estimation of Classifier Performance and Priors in Absence of Ground-Truth
-This repository contains the experiments presented in the paper "Online Estimation of Classifier Performance and Priors in Absence of Ground-Truth" submitted to SigKDD.
+This repository contains the experiments presented in the paper Online Performance Estimation with Unlabeled Data: A Bayesian Application of the Hui-
+Walter Paradigm by Kevin Slote, Elaine Lee published in Lecture Notes in Networks and Systems.
 
 ## Introduction
 The goal of this project is to evaluate the proposed method for online estimation of classifier performance and priors in the absence of ground-truth. In this context, we evaluate our method in three different scenarios:
