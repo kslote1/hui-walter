@@ -47,6 +47,20 @@ $ pip install -r requirements.txt
 * [Distribution Plots](bivariate_plots.Rmd) The R notebook for Figure 5. 
 * [Bivariate Features Plots](bivariate_plots_in_python.ipynb) The jupyter notebook for Fig. 3.
 
+### Citation
+
+```
+@incollection{slote2025online,
+  title     = {Online Performance Estimation with Unlabeled Data: A Bayesian Application of the Hui-Walter Paradigm},
+  author    = {Kevin Slote},
+  booktitle = {Lecture Notes in Networks and Systems},
+  volume    = {1285},
+  pages     = {529--553},
+  year      = {2025},
+  publisher = {Springer},
+}
+```
+
 
 ### Please cite
 
