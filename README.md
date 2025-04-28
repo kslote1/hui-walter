@@ -52,7 +52,7 @@ $ pip install -r requirements.txt
 ```
 @incollection{slote2025online,
   title     = {Online Performance Estimation with Unlabeled Data: A Bayesian Application of the Hui-Walter Paradigm},
-  author    = {Kevin Slote},
+  author    = {Kevin Slote and Elaine Lee},
   booktitle = {Lecture Notes in Networks and Systems},
   volume    = {1285},
   pages     = {529--553},
